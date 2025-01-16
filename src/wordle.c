@@ -13,7 +13,6 @@
     extern void raylib_js_set_entry(void (*entry)(void));
 #endif
 
-
 #define MAX_ATTEMPTS 6
 #define MAX_TIMER 1.0f
 
@@ -34,16 +33,22 @@ typedef struct Attempt {
     Color colors[WORD_LEN];
 } Attempt;
 
+typedef enum State {
+    STATE_PLAY = 0,
+    STATE_WIN,
+    STATE_LOSE,
+} State;
+
 typedef struct Game {
     char *word;                     // Hidden word
     int attempt;                    // Current attempt
     Attempt attempts[MAX_ATTEMPTS]; // Previous attemps
     char current_guess[WORD_LEN];   // Current user guess buffer
     int current_guess_len;          // Current user guess buffer length
+    State state;                    // Game state
 } Game;
 
 static Game game = {0};
-bool win = false;
 
 float game_timer = 0.0f;
 static Font font = {0};
@@ -62,8 +67,9 @@ void restart_game(void)
     game.attempt = 0;
     game.current_guess_len = 0;
     for (int i = 0; i < WORD_LEN; ++i) {
-        game.current_guess[i] = '\0'; 
+        game.current_guess[i] = '\0';
     }
+    game.state = STATE_PLAY;
 }
 
 
@@ -89,10 +95,10 @@ void draw_letter(char chr, int letter_box_x, int letter_box_y)
     draw_text(text, x, y, WHITE);
 }
 
-void draw_attempts(void) 
+void draw_attempts(void)
 {
-    int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2; 
-    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2; 
+    int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2;
+    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2;
     for (int i = 0; i < game.attempt; ++i) {
         int y = start_y + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * i;
         for (int j = 0; j < WORD_LEN; ++j) {
@@ -115,7 +121,9 @@ void make_attempt(void)
     for (int i = 0; i < WORD_LEN; ++i) {
         if (game.current_guess[i] != game.word[i]) is_win = false;
     }
-    win = is_win;
+    if (is_win) {
+        game.state = STATE_WIN;
+    }
 
     /* Copy user guess to previous attempts */
     for (int i = 0; i < WORD_LEN; ++i) {
@@ -128,8 +136,8 @@ void make_attempt(void)
     char word_buffer[WORD_LEN] = {0};
     char guess_buffer[WORD_LEN] = {0};
     for (int i = 0; i < WORD_LEN; ++i) {
-        word_buffer[i] = game.word[i]; 
-        guess_buffer[i] = game.attempts[game.attempt].word[i]; 
+        word_buffer[i] = game.word[i];
+        guess_buffer[i] = game.attempts[game.attempt].word[i];
     }
 
     for (int i = 0; i < WORD_LEN; ++i) {
@@ -139,9 +147,9 @@ void make_attempt(void)
             word_buffer[i] = '\0';
         } else {
             game.attempts[game.attempt].colors[i] = RED;
-        } 
+        }
     }
-    
+
     for (int i = 0; i < WORD_LEN; ++i) {
         if (word_buffer[i] == '\n') continue;
         for (int j = 0; j < WORD_LEN; ++j) {
@@ -152,13 +160,16 @@ void make_attempt(void)
                 word_buffer[i] = '\0';
                 break;
             }
-        }  
+        }
     }
 
     /* The end of calculates */
 
     game.current_guess_len = 0;
     game.attempt += 1;
+    if (game.attempt == MAX_ATTEMPTS && game.state != STATE_WIN) {
+        game.state = STATE_LOSE;
+    }
 }
 
 
@@ -170,9 +181,9 @@ void process_input(void)
         }
         --game.current_guess_len;
     } else if (IsKeyPressed(KEY_ENTER)) {
-        make_attempt(); 
+        make_attempt();
         return;
-    } 
+    }
 
     if (game.current_guess_len >= WORD_LEN) return;
 
@@ -182,7 +193,7 @@ void process_input(void)
             ++game.current_guess_len;
         }
     }
-} 
+}
 
 void draw_cursor(int letter_box_x, int letter_box_y)
 {
@@ -192,19 +203,19 @@ void draw_cursor(int letter_box_x, int letter_box_y)
         int y = (letter_box_y + LETTER_BOX_SIZE/2) - CURSOR_HEIGHT/2;
         DrawRectangle(x, y, CURSOR_WIDTH, CURSOR_HEIGHT, WHITE);
     }
-    
+
     if (game_timer >= MAX_TIMER) {
         game_timer = 0.0f;
     }
 }
 
-void draw_user_guess(void) 
+void draw_user_guess(void)
 {
     if (game.attempt >= MAX_ATTEMPTS) return;
 
-    int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2; 
-    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2; 
-    
+    int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2;
+    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2;
+
     int y = start_y + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * game.attempt;
     for (int c = 0; c < WORD_LEN; ++c) {
         int x = start_x + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * c;
@@ -212,8 +223,8 @@ void draw_user_guess(void)
         if (c < game.current_guess_len) draw_letter(game.current_guess[c], x, y);
         if (c == game.current_guess_len) draw_cursor(x, y);
     }
-    
-    process_input(); 
+
+    process_input();
 
     return;
 }
@@ -225,8 +236,8 @@ void game_frame(void)
         if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_R)) {
             restart_game();
         } else {
-            draw_attempts(); 
-            if (!win) {
+            draw_attempts();
+            if (game.state == STATE_PLAY) {
                 draw_user_guess();
             }
         }
@@ -238,16 +249,16 @@ int main(void)
 {
     srand(time(NULL));
     init_game();
-    
+
     SetTraceLogLevel(LOG_WARNING);
     SetTargetFPS(60);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Wordle");
 
     font = LoadFontEx(LETTER_FONT_FILEPATH, LETTER_FONT_SIZE, NULL, 0);
-    
+
 #ifdef PLATFORM_WEB
     raylib_js_set_entry(game_frame);
-#else 
+#else
     while (!WindowShouldClose()) {
         game_frame();
     }
