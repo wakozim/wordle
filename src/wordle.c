@@ -1,22 +1,17 @@
 #include "raylib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <time.h>
 
 #include "words.h"
 
 #define BACKGROUND_COLOR CLITERAL(Color){0x18,0x18,0x18,0xFF}
 
 #ifdef PLATFORM_WEB
-#   define NULL ((void *) 0)
-    extern int rand(void);
-    extern void srand(unsigned int seed);
-    extern int time(void *time); 
     extern void print_word(char *word);
-#else
-#   include <stdio.h>
-#   include <stdlib.h>
-#   include <time.h>
+    extern void raylib_js_set_entry(void (*entry)(void));
 #endif
-
-void raylib_js_set_entry(void (*entry)(void));
 
 
 #define MAX_ATTEMPTS 6

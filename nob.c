@@ -68,6 +68,7 @@ int main(int arc, char **argv)
     cmd_append(&cmd, "--target=wasm32", "--no-standard-libraries", "-Wl,--export-table", "-Wl,--no-entry", "-Wl,--allow-undefined", "-Wl,--export=main", "-Wl,--export=__head_base", "-Wl,--allow-undefined");
     cmd_append(&cmd, "-I./build/");
     cmd_append(&cmd, "-I./");
+    cmd_append(&cmd, "-I./include");
     cmd_append(&cmd, "-I./raylib/raylib-5.5_linux_amd64/include");
     cmd_append(&cmd, "-o", "./wasm/wordle.wasm", SOURCE_FILE_PATH, "-DPLATFORM_WEB");
     if (!cmd_run_sync_and_reset(&cmd)) return 1;
