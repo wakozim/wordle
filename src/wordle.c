@@ -50,7 +50,7 @@ typedef struct Game {
 
 static Game game = {0};
 
-float game_timer = 0.0f;
+float cursor_timer = 0.0f;
 static Font font = {0};
 
 
@@ -217,15 +217,15 @@ void process_input(void)
 
 void draw_cursor(int letter_box_x, int letter_box_y)
 {
-    game_timer += GetFrameTime();
-    if (game_timer >= 0.25f) {
+    cursor_timer += GetFrameTime();
+    if (cursor_timer >= 0.25f) {
         int x = (letter_box_x + LETTER_BOX_SIZE/2) - CURSOR_WIDTH/2;
         int y = (letter_box_y + LETTER_BOX_SIZE/2) - CURSOR_HEIGHT/2;
         DrawRectangle(x, y, CURSOR_WIDTH, CURSOR_HEIGHT, WHITE);
     }
 
-    if (game_timer >= MAX_TIMER) {
-        game_timer = 0.0f;
+    if (cursor_timer >= MAX_TIMER) {
+        cursor_timer = 0.0f;
     }
 }
 
