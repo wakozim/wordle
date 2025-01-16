@@ -112,9 +112,27 @@ void draw_attempts(void)
 }
 
 
-void make_attempt(void)
+bool make_attempt(void)
 {
-    if (game.attempt == MAX_ATTEMPTS) return;
+    if (game.attempt == MAX_ATTEMPTS) return false;
+
+    /* Check is word exists */
+    if (game.current_guess_len < WORD_LEN) return false;
+
+    bool is_word_exists = false;
+    for (int i = 0; i < WORDS; ++i) {
+        bool is_same_words = true;
+        for (int j = 0; j < WORD_LEN; ++j) {
+            if (words[i][j] != game.current_guess[j]) {
+                is_same_words = false;
+            }
+        }
+        if (is_same_words) {
+            is_word_exists = true;
+            break;
+        }
+    }
+    if (!is_word_exists) return false;
 
     /* Check for win */
     bool is_win = true;
@@ -170,6 +188,8 @@ void make_attempt(void)
     if (game.attempt == MAX_ATTEMPTS && game.state != STATE_WIN) {
         game.state = STATE_LOSE;
     }
+
+    return true;
 }
 
 
