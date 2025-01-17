@@ -56,7 +56,7 @@ class RaylibJs {
     stop() {
         this.quit = true;
     }
-    
+
     async start({ wasmPath, canvasId }) {
         if (this.wasm !== undefined) {
             console.error("The game is already running. Please stop() it first.");
@@ -123,7 +123,7 @@ class RaylibJs {
             window.requestAnimationFrame(next);
         });
     }
-    
+
     time(ptr) {
         return 0;
     }
@@ -140,7 +140,7 @@ class RaylibJs {
         const bcrect = this.ctx.canvas.getBoundingClientRect();
         const cur_x = this.currentMousePosition.x - bcrect.left;
         const cur_y = this.currentMousePosition.y - bcrect.top;
-        
+
         const prev_x = this.prevMousePosition.x - bcrect.left;
         const prev_y = this.prevMousePosition.y - bcrect.top;
 
@@ -155,7 +155,7 @@ class RaylibJs {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const [x1, y1] = new Float32Array(buffer, center1_ptr, 2);
         const [x2, y2] = new Float32Array(buffer, center2_ptr, 2);
-        
+
         var collision = false;
 
         const dx = x2 - x1;      // X distance between centers
@@ -182,9 +182,9 @@ class RaylibJs {
         } else {
             this.ctx.canvas.width = width;
         }
-        if (height === 0) { 
+        if (height === 0) {
             this.ctx.canvas.height = window.innerHeight;
-        } else { 
+        } else {
             this.ctx.canvas.height = height;
         }
         const buffer = this.wasm.instance.exports.memory.buffer;
@@ -224,8 +224,8 @@ class RaylibJs {
         this.prevPressedKeyState = new Set(this.currentPressedKeyState);
         this.currentMouseWheelMoveState = 0.0;
     }
-    
-    
+
+
     //RLAPI void DrawCircle(int centerX, int centerY, float radius, Color color);                              // Draw a color-filled circle
     DrawCircle(x, y, radius, color_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
@@ -270,14 +270,14 @@ class RaylibJs {
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
     }
-    
+
     DrawRing(center_ptr, inner_radius, outer_radius, start_angle, end_angle, segments, color_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const [x, y] = new Float32Array(buffer, center_ptr, 2);
         const [r, g, b, a] = new Uint8Array(buffer, color_ptr, 4);
-        const color = color_hex_unpacked(r, g, b, a); 
+        const color = color_hex_unpacked(r, g, b, a);
         const radius_delta = outer_radius - inner_radius;
-        const radius = inner_radius + radius_delta/2; 
+        const radius = inner_radius + radius_delta/2;
         start_angle = degreesToRadians(start_angle)
         end_angle = degreesToRadians(end_angle)
         if (start_angle > end_angle) {
@@ -297,8 +297,8 @@ class RaylibJs {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const [r, g, b, a] = new Uint8Array(buffer, color_ptr, 4);
         const [r2, g2, b2, a2] = new Uint8Array(buffer, color2_ptr, 4);
-        const color = color_hex_unpacked(r, g, b, a); 
-        const color2 = color_hex_unpacked(r2, g2, b2, a2); 
+        const color = color_hex_unpacked(r, g, b, a);
+        const color2 = color_hex_unpacked(r2, g2, b2, a2);
         // Create a radial gradient
         const gradient = this.ctx.createRadialGradient(x, y, radius/2, x, y, radius);
         gradient.addColorStop(0, color);
@@ -307,7 +307,7 @@ class RaylibJs {
         this.ctx.arc(x, y, radius, 0, Math.PI*2, false);
         this.ctx.fillStyle = gradient;
         this.ctx.fill();
-    } 
+    }
 
     ClearBackground(color_ptr) {
         this.ctx.fillStyle = getColorFromMemory(this.wasm.instance.exports.memory.buffer, color_ptr);
@@ -337,8 +337,8 @@ class RaylibJs {
         this.ctx.fillStyle = color;
         this.ctx.fillRect(posX, posY, width, height);
     }
-    
-    
+
+
     //RLAPI void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color); // Draw a color-filled triangle (vertex in counter-clockwise order!)
     DrawTriangle(v1, v2, v3, color_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
@@ -386,7 +386,7 @@ class RaylibJs {
         return false;
     }
 
-    TextFormat(... args){ 
+    TextFormat(... args){
         // TODO: Implement printf style formatting for TextFormat
         return args[0];
     }
@@ -449,7 +449,7 @@ class RaylibJs {
         this.ctx.fillStyle = color;
         this.ctx.fillRect(x, y, w, h);
     }
-    
+
     DrawRectangleLinesEx(rec_ptr, lineThick, color_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const [x, y, w, h] = new Float32Array(buffer, rec_ptr, 4);
@@ -534,7 +534,7 @@ class RaylibJs {
         result[0] = metrics.width;
         result[1] = fontSize;
     }
-    
+
     DrawTextEx(font, text_ptr, position_ptr, fontSize, spacing, tint_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const text = cstr_by_ptr(buffer, text_ptr);
@@ -544,7 +544,7 @@ class RaylibJs {
         this.ctx.font = fontSize+"px myfont";
         this.ctx.fillText(text, posX, posY + fontSize);
     }
-    
+
     Vector2Distance(vector1_ptr, vector2_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const [v1_x, v1_y] = new Float32Array(buffer, vector1_ptr, 2);
@@ -552,7 +552,25 @@ class RaylibJs {
 
         return Math.sqrt((v1_x - v2_x)*(v1_x - v2_x) + (v1_y - v2_y)*(v1_y - v2_y));
     }
-    
+
+    //RLAPI Color ColorLerp(Color color1, Color color2, float factor);
+    // Get color lerp interpolation between two colors, factor [0.0f..1.0f]
+    ColorLerp(result_ptr, color1_ptr, color2_ptr, factor) {
+        const buffer = this.wasm.instance.exports.memory.buffer;
+        var [r1, g1, b1, a1] = new Uint8Array(buffer, color1_ptr, 4);
+        var [r2, g2, b2, a2] = new Uint8Array(buffer, color2_ptr, 4);
+
+        if (factor < 0.0) factor = 0.0;
+        else if (factor > 1.0) factor = 1.0;
+
+        let r = Math.floor((1.0 - factor)*r1 + factor*r2);
+        let g = Math.floor((1.0 - factor)*g1 + factor*g2);
+        let b = Math.floor((1.0 - factor)*b1 + factor*b2);
+        let a = Math.floor((1.0 - factor)*a1 + factor*a2);
+
+        new Uint8Array(buffer, result_ptr, 4).set([r, g, b, a]);
+    }
+
     ColorBrightness(result_ptr, color_ptr, factor) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         var [r, g, b, a] = new Uint8Array(buffer, color_ptr, 4);
@@ -573,12 +591,12 @@ class RaylibJs {
 
         new Uint8Array(buffer, result_ptr, 4).set([r, g, b, a]);
     }
-   
+
     // RMAPI float Lerp(float start, float end, float amount)
     Lerp(start, end, amount) {
         return start + amount*(end - start);
     }
-    
+
     pow(value, p) {
         return Math.pow(value, p)
     }
@@ -586,7 +604,7 @@ class RaylibJs {
     sinf(value) {
         return Math.sin(value);
     }
-    
+
     cosf(value) {
         return Math.cos(value);
     }
@@ -621,7 +639,7 @@ class RaylibJs {
     fmod(x, y) {
         return x % y;
     }
-    
+
     print_word(word_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         console.log("Word:", cstr_by_ptr(buffer, word_ptr));

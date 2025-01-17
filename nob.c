@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         cmd_append(&cmd, "-I./raylib/raylib-5.5_linux_amd64/include");
         cmd_append(&cmd, "-o", "./build/wordle", SOURCE_FILE_PATH);
         cmd_append(&cmd, "-L./raylib/raylib-5.5_linux_amd64/lib");
-        cmd_append(&cmd, "-lraylib");
+        cmd_append(&cmd, "-lraylib", "-lm");
         if (debug) cmd_append(&cmd, "-DDEBUG");
         if (!cmd_run_sync_and_reset(&cmd)) return 1;
     } else {
