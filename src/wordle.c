@@ -116,6 +116,7 @@ bool make_attempt(void)
 {
     if (game.attempt == MAX_ATTEMPTS) return false;
 
+#ifndef DEBUG
     /* Check is word exists */
     if (game.current_guess_len < WORD_LEN) return false;
 
@@ -133,6 +134,7 @@ bool make_attempt(void)
         }
     }
     if (!is_word_exists) return false;
+#endif
 
     /* Check for win */
     bool is_win = true;
