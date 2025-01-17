@@ -154,7 +154,7 @@ State make_attempt(void)
             break;
         }
     }
-    if (!is_word_exists) return state;
+    if (!is_word_exists) return STATE_PLAY;
 #endif
 
     /* Check for win */
