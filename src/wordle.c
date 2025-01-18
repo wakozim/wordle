@@ -22,10 +22,11 @@
 #define LETTER_BOX_COLOR           CLITERAL(Color) { 0x4E, 0x80, 0x98, 0xFF }
 #define LETTER_COLOR               ColorFromHSV(0, 0.0f, 0.95f)
 #define GREEN_BOX_COLOR            CLITERAL(Color) { 0x23, 0xEF, 0x3C, 0xFF }
-#define RED_BOX_COLOR              CLITERAL(Color) { 0xC0, 0x32, 0x21, 0xFF }
+#define WRONG_BOX_COLOR            ColorFromHSV(0, 0.0f, 0.25f)
 #define YELLOW_BOX_COLOR           ColorFromHSV(45, 1.0f, 0.85f)
 #define CURSOR_COLOR               LETTER_COLOR
-#define DEFAULT_KEYBOARD_KEY_COLOR ColorFromHSV(0, 0.0f, 0.35f)
+#define DEFAULT_KEYBOARD_KEY_COLOR ColorFromHSV(0, 0.0f, 0.45f)
+#define WRONG_KEYBOARD_KEY_COLOR   ColorFromHSV(0, 0.0f, 0.25f)
 
 #ifdef PLATFORM_WEB
 #   define FONT_SIZE              50
@@ -236,9 +237,9 @@ State make_attempt(void)
             guess_buffer[i] = '\0';
             word_buffer[i] = '\0';
         } else {
-            game.attempts[game.attempt].colors[i] = RED_BOX_COLOR;
+            game.attempts[game.attempt].colors[i] = WRONG_BOX_COLOR;
             if (is_colors_equals(game.keyboard[row][col], DEFAULT_KEYBOARD_KEY_COLOR))
-                game.keyboard[row][col] = RED_BOX_COLOR;
+                game.keyboard[row][col] = WRONG_KEYBOARD_KEY_COLOR;
         }
     }
 
