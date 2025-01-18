@@ -18,24 +18,40 @@
 #define USER_GUESS_APPER_TIME    1.0f
 #define MAX_CURSOR_TIMER         1.0f
 
-#define BACKGROUND_COLOR CLITERAL(Color) { 0x18, 0x18, 0x18, 0xFF }
-#define LETTER_BOX_COLOR CLITERAL(Color) { 0x4E, 0x80, 0x98, 0xFF }
-#define LETTER_COLOR     ColorFromHSV(0, 0.0f, 0.95f)
-#define GREEN_BOX_COLOR  CLITERAL(Color) { 0x23, 0xEF, 0x3C, 0xFF }
-#define RED_BOX_COLOR    CLITERAL(Color) { 0xC0, 0x32, 0x21, 0xFF }
-#define YELLOW_BOX_COLOR ColorFromHSV(45, 1.0f, 0.85f)
-#define CURSOR_COLOR     LETTER_COLOR
+#define BACKGROUND_COLOR           CLITERAL(Color) { 0x18, 0x18, 0x18, 0xFF }
+#define LETTER_BOX_COLOR           CLITERAL(Color) { 0x4E, 0x80, 0x98, 0xFF }
+#define LETTER_COLOR               ColorFromHSV(0, 0.0f, 0.95f)
+#define GREEN_BOX_COLOR            CLITERAL(Color) { 0x23, 0xEF, 0x3C, 0xFF }
+#define RED_BOX_COLOR              CLITERAL(Color) { 0xC0, 0x32, 0x21, 0xFF }
+#define YELLOW_BOX_COLOR           ColorFromHSV(45, 1.0f, 0.85f)
+#define CURSOR_COLOR               LETTER_COLOR
+#define DEFAULT_KEYBOARD_KEY_COLOR ColorFromHSV(0, 0.0f, 0.35f)
 
-#define LETTER_FONT_FILEPATH "./assets/fonts/Oswald-Bold.ttf"
-#define LETTER_FONT_SIZE     65
-#define LETTER_BOX_SIZE      75
-#define LETTER_BOX_GAP       10
-#define FIELD_WIDTH          ((WORD_LEN * LETTER_BOX_SIZE) + ((WORD_LEN - 1) * LETTER_BOX_GAP))
-#define FIELD_HEIGHT         ((MAX_ATTEMPTS * LETTER_BOX_SIZE) + ((MAX_ATTEMPTS - 1) * LETTER_BOX_GAP))
-#define CURSOR_WIDTH         (LETTER_BOX_SIZE*0.1f)
-#define CURSOR_HEIGHT        (LETTER_BOX_SIZE*0.75f)
-#define SCREEN_WIDTH         (FIELD_WIDTH + 200)
-#define SCREEN_HEIGHT        (FIELD_HEIGHT + 200)
+#ifdef PLATFORM_WEB
+#   define FONT_SIZE              50
+#   define PLATFORM_SCREEN_WIDTH  0
+#   define PLATFORM_SCREEN_HEIGHT 0
+#else
+#   define FONT_SIZE              65
+#   define PLATFORM_SCREEN_WIDTH  ((FIELD_WIDTH + 200) * 1.5) 
+#   define PLATFORM_SCREEN_HEIGHT ((FIELD_HEIGHT + KEYBOARD_HEIGHT) * 1.25)
+#endif
+
+#define LETTER_FONT_FILEPATH  "./assets/fonts/Oswald-Bold.ttf"
+#define LETTER_FONT_SIZE      FONT_SIZE
+#define LETTER_BOX_SIZE       75
+#define LETTER_BOX_GAP        10
+#define FIELD_WIDTH           ((WORD_LEN * LETTER_BOX_SIZE) + ((WORD_LEN - 1) * LETTER_BOX_GAP))
+#define FIELD_HEIGHT          ((MAX_ATTEMPTS * LETTER_BOX_SIZE) + ((MAX_ATTEMPTS - 1) * LETTER_BOX_GAP))
+#define FIELD_MARGIN          25
+#define CURSOR_WIDTH          (LETTER_BOX_SIZE*0.1f)
+#define CURSOR_HEIGHT         (LETTER_BOX_SIZE*0.75f)
+#define KEYBOARD_KEY_SIZE     60
+#define KEYBOARD_GAP          15
+#define KEYBOARD_FONT_SIZE    (FONT_SIZE - 10)
+#define KEYBOARD_HEIGHT       (KEYBOARD_KEY_SIZE * 3 + KEYBOARD_GAP * 2)
+#define SCREEN_WIDTH          PLATFORM_SCREEN_WIDTH 
+#define SCREEN_HEIGHT         PLATFORM_SCREEN_HEIGHT 
 
 
 typedef struct Attempt {
@@ -59,19 +75,40 @@ typedef struct Game {
     int current_guess_len;          // Current user guess buffer length
     State state;                    // Game state
     float time;                     // Game time
+    Color keyboard[3][12];          // Keyboard state
 } Game;
 
+#define KEYBOARD_ROWS 3
+char keyboard_keys[KEYBOARD_ROWS][12] = {
+    "QWERTYUIOP",
+    "ASDFGHJKL",
+    "ZXCVBNM"
+};
 static Game game = {0};
 static Font font = {0};
 
 static float cursor_timer = 0.0f;
 
-
-static float pause = false;
+void find_keyboard_key(char chr, int *i, int *j)
+{
+    for (int row = 0; row < KEYBOARD_ROWS; ++row) {
+        for (int key = 0; keyboard_keys[row][key]; ++key) {
+            if (keyboard_keys[row][key] == chr) {
+                *i = row;
+                *j = key;
+            }
+        }
+    }
+}
 
 
 void restart_game(void)
 {
+    for (int i = 0; i < KEYBOARD_ROWS; ++i) {
+        for (int j = 0; j < 12; ++j) {
+            game.keyboard[i][j] = DEFAULT_KEYBOARD_KEY_COLOR;
+        }
+    }
     game.word = words[rand() % WORDS];
 #ifdef DEBUG
 #   ifdef PLATFORM_WEB
@@ -95,26 +132,30 @@ void init_game(void)
 }
 
 
-void draw_text(char *text, int x, int y, Color color)
+void draw_text(char *text, int x, int y, int font_size, Color color)
 {
-    DrawTextEx(font, text, CLITERAL(Vector2){x, y}, LETTER_FONT_SIZE, 1, color);
+    DrawTextEx(font, text, CLITERAL(Vector2){x, y}, font_size, 1, color);
 }
 
 
-void draw_letter(char chr, int letter_box_x, int letter_box_y)
+void draw_char(char chr, int char_box_size, int char_box_x, int char_box_y, int font_size)
 {
     char text[10] = {0};
     text[0] = chr;
-    Vector2 text_size = MeasureTextEx(font, text, LETTER_FONT_SIZE, 1);
-    int x = (letter_box_x + LETTER_BOX_SIZE/2) - text_size.x/2;
-    int y = (letter_box_y + LETTER_BOX_SIZE/2) - text_size.y/2;
-    draw_text(text, x, y, LETTER_COLOR);
+    Vector2 text_size = MeasureTextEx(font, text, font_size, 1);
+    int x = (char_box_x + char_box_size/2) - text_size.x/2;
+    int y = (char_box_y + char_box_size/2) - text_size.y/2;
+    draw_text(text, x, y, font_size, LETTER_COLOR);
 }
+
+#define draw_letter(chr, x, y) draw_char((chr), LETTER_BOX_SIZE, (x), (y), LETTER_FONT_SIZE)
+
 
 void draw_attempts(float t)
 {
     int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2;
-    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2;
+    int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT+FIELD_MARGIN*2+KEYBOARD_HEIGHT)/2;
+
     for (int i = 0; i < game.attempt; ++i) {
         int y = start_y + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * i;
         for (int j = 0; j < WORD_LEN; ++j) {
@@ -128,6 +169,11 @@ void draw_attempts(float t)
         }
     }
     return;
+}
+
+bool is_colors_equals(Color c1, Color c2)
+{
+    return (c1.r == c2.r && c1.g == c2.g && c1.b == c2.b);
 }
 
 
@@ -181,13 +227,18 @@ State make_attempt(void)
         guess_buffer[i] = game.attempts[game.attempt].word[i];
     }
 
+    int row, col;
     for (int i = 0; i < WORD_LEN; ++i) {
+        find_keyboard_key(guess_buffer[i], &row, &col);
         if (guess_buffer[i] == word_buffer[i]) {
+            game.keyboard[row][col] = GREEN_BOX_COLOR;
             game.attempts[game.attempt].colors[i] = GREEN_BOX_COLOR;
             guess_buffer[i] = '\0';
             word_buffer[i] = '\0';
         } else {
             game.attempts[game.attempt].colors[i] = RED_BOX_COLOR;
+            if (is_colors_equals(game.keyboard[row][col], DEFAULT_KEYBOARD_KEY_COLOR))
+                game.keyboard[row][col] = RED_BOX_COLOR;
         }
     }
 
@@ -196,6 +247,9 @@ State make_attempt(void)
         for (int j = 0; j < WORD_LEN; ++j) {
             if (guess_buffer[j] == '\0') continue;
             if (word_buffer[i] == guess_buffer[j]) {
+                find_keyboard_key(guess_buffer[j], &row, &col);
+                if (!is_colors_equals(game.keyboard[row][col], GREEN_BOX_COLOR))
+                    game.keyboard[row][col] = YELLOW_BOX_COLOR;
                 game.attempts[game.attempt].colors[j] = YELLOW_BOX_COLOR;
                 guess_buffer[j] = '\0';
                 word_buffer[i] = '\0';
@@ -261,7 +315,7 @@ void draw_user_guess(float t)
     if (game.attempt >= MAX_ATTEMPTS) return;
 
     int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2;
-    int start_y = GetScreenHeight()/2 - FIELD_HEIGHT/2;
+    int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT+FIELD_MARGIN*2+KEYBOARD_HEIGHT)/2;
 
     int min_y = start_y + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * (game.attempt - 1);
     int max_y = start_y + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * game.attempt;
@@ -305,16 +359,43 @@ void draw_game_win(void)
 void draw_game_lose(void)
 {
     draw_attempts(1.0f);
-    draw_text(game.word, 0, 0, WHITE);
+    draw_text(game.word, 0, 0, LETTER_FONT_SIZE, WHITE);
+}
+
+size_t strlen(const char *string)
+{
+    if (string == NULL) return 0;
+
+    int size = 0;
+    while (string[0] != '\0') {
+        ++size;
+        ++string;
+    }
+    return size;
+}
+
+void draw_keyboard(void)
+{
+    for (int i = 0; i < 3; ++i) {
+        int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT + FIELD_MARGIN*2 + KEYBOARD_HEIGHT)/2 + FIELD_HEIGHT + FIELD_MARGIN*2;
+        int y = start_y + i * KEYBOARD_KEY_SIZE + i * KEYBOARD_GAP;
+        for (int j = 0; keyboard_keys[i][j]; ++j) {
+            int len = strlen(keyboard_keys[i]);
+            int row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
+            int start_x = GetScreenWidth()/2 - row_width/2;
+            int x = start_x + (j * KEYBOARD_KEY_SIZE + j * KEYBOARD_GAP);
+            Color color = game.keyboard[i][j];
+            DrawRectangle(x, y, KEYBOARD_KEY_SIZE, KEYBOARD_KEY_SIZE, color);
+            draw_char(keyboard_keys[i][j], KEYBOARD_KEY_SIZE, x, y, KEYBOARD_FONT_SIZE);
+        }
+    }
 }
 
 void draw_game_state(void)
 {
-    if (IsKeyPressed(KEY_SPACE)) {
-        pause = !pause;
-    }
+    draw_keyboard();
 
-    if (!pause && game.time > 0.0f) game.time -= GetFrameTime();
+    if (game.time > 0.0f) game.time -= GetFrameTime();
 
     switch (game.state) {
         case STATE_PLAY: {
