@@ -517,31 +517,35 @@ class RaylibJs {
         const fileName = cstr_by_ptr(buffer, fileName_ptr);
         // TODO: dynamically generate the name for the font
         // Support more than one custom font
-        const font = new FontFace("myfont", `url(${fileName})`);
+        const font_index = document.fonts.size;
+        const font = new FontFace(`custom_font${font_index}`, `url(${fileName})`);
         document.fonts.add(font);
         font.load();
+        new Uint8Array(buffer, result_ptr, 1).set([font_index]);
     }
 
     GenTextureMipmaps() {}
     SetTextureFilter() {}
 
-    MeasureTextEx(result_ptr, font, text_ptr, fontSize, spacing) {
+    MeasureTextEx(result_ptr, font_ptr, text_ptr, fontSize, spacing) {
         const buffer = this.wasm.instance.exports.memory.buffer;
         const text = cstr_by_ptr(buffer, text_ptr);
         const result = new Float32Array(buffer, result_ptr, 2);
-        this.ctx.font = fontSize+"px myfont";
+        const font_index = new Uint8Array(buffer, font_ptr, 1)[0];
+        this.ctx.font = fontSize+`px custom_font${font_index}`;
         const metrics = this.ctx.measureText(text)
         result[0] = metrics.width;
         result[1] = fontSize;
     }
 
-    DrawTextEx(font, text_ptr, position_ptr, fontSize, spacing, tint_ptr) {
+    DrawTextEx(font_ptr, text_ptr, position_ptr, fontSize, spacing, tint_ptr) {
         const buffer = this.wasm.instance.exports.memory.buffer;
+        const font_index = new Uint8Array(buffer, font_ptr, 1)[0];
         const text = cstr_by_ptr(buffer, text_ptr);
         const [posX, posY] = new Float32Array(buffer, position_ptr, 2);
         const tint = getColorFromMemory(buffer, tint_ptr);
         this.ctx.fillStyle = tint;
-        this.ctx.font = fontSize+"px myfont";
+        this.ctx.font = fontSize+`px custom_font${font_index}`;
         this.ctx.fillText(text, posX, posY + fontSize);
     }
 
