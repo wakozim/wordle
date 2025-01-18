@@ -18,15 +18,16 @@
 #define USER_GUESS_APPER_TIME    0.25f
 #define MAX_CURSOR_TIMER         1.0f
 
-#define BACKGROUND_COLOR           CLITERAL(Color) { 0x18, 0x18, 0x18, 0xFF }
-#define LETTER_BOX_COLOR           CLITERAL(Color) { 0x4E, 0x80, 0x98, 0xFF }
+#define BACKGROUND_COLOR           ColorFromHSV(0, 0.0f, 0.09f)
+#define LETTER_BOX_COLOR           ColorFromHSV(199, 0.48f, 0.59f) 
 #define LETTER_COLOR               ColorFromHSV(0, 0.0f, 0.95f)
-#define GREEN_BOX_COLOR            CLITERAL(Color) { 0x23, 0xEF, 0x3C, 0xFF }
+#define GREEN_BOX_COLOR            ColorFromHSV(127, 0.7f, 0.7f) 
 #define WRONG_BOX_COLOR            ColorFromHSV(0, 0.0f, 0.25f)
-#define YELLOW_BOX_COLOR           ColorFromHSV(45, 1.0f, 0.85f)
+#define YELLOW_BOX_COLOR           ColorFromHSV(45, 0.9f, 0.8f)
 #define CURSOR_COLOR               LETTER_COLOR
-#define DEFAULT_KEYBOARD_KEY_COLOR ColorFromHSV(0, 0.0f, 0.45f)
+#define DEFAULT_KEYBOARD_KEY_COLOR ColorFromHSV(199, 0.15f, 0.45f)
 #define WRONG_KEYBOARD_KEY_COLOR   ColorFromHSV(0, 0.0f, 0.25f)
+#define LOSE_BOX_COLOR             ColorFromHSV(0, 0.0f, 0.35f)
 
 #ifdef PLATFORM_WEB
 #   define FONT_SIZE              50
@@ -488,8 +489,19 @@ void draw_game_win(void)
 void draw_game_lose(void)
 {
     draw_attempts(1.0f);
-    draw_text(game.word, 0, 0, LETTER_FONT_SIZE, WHITE);
     draw_keyboard(false);
+    Vector2 text_size = MeasureTextEx(font, game.word, LETTER_FONT_SIZE, 1);
+    int width = text_size.x + 100;
+    int height = text_size.y + 10;
+    int x = GetScreenWidth()/2 - width/2;
+    int y = GetScreenHeight()/2 - (FIELD_HEIGHT+FIELD_MARGIN*2+KEYBOARD_HEIGHT)/2;
+    DrawRectangle(x, y, width, height, LOSE_BOX_COLOR);
+    DrawRectangleLines(x, y, width, height, ColorBrightness(LOSE_BOX_COLOR, -0.5f));
+    Vector2 text_pos = { 
+        .x = (x + width/2 - text_size.x/2), 
+        .y = (y + height/2 - text_size.y/2) 
+    };
+    DrawTextEx(font, game.word, text_pos, LETTER_FONT_SIZE, 1.0f, LETTER_COLOR);
 }
 
 
