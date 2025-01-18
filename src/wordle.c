@@ -14,8 +14,8 @@
 #endif
 #define MAX_ATTEMPTS             6
 #define MAX_GAME_TIMER           1.0f
-#define USER_GUESS_COLORING_TIME 1.0f
-#define USER_GUESS_APPER_TIME    1.0f
+#define USER_GUESS_COLORING_TIME 0.5f
+#define USER_GUESS_APPER_TIME    0.25f
 #define MAX_CURSOR_TIMER         1.0f
 
 #define BACKGROUND_COLOR           CLITERAL(Color) { 0x18, 0x18, 0x18, 0xFF }
@@ -34,7 +34,7 @@
 #   define PLATFORM_SCREEN_HEIGHT 0
 #else
 #   define FONT_SIZE              65
-#   define PLATFORM_SCREEN_WIDTH  ((FIELD_WIDTH + 200) * 1.5) 
+#   define PLATFORM_SCREEN_WIDTH  ((FIELD_WIDTH + 200) * 1.5)
 #   define PLATFORM_SCREEN_HEIGHT ((FIELD_HEIGHT + KEYBOARD_HEIGHT) * 1.25)
 #endif
 
@@ -51,8 +51,8 @@
 #define KEYBOARD_GAP          15
 #define KEYBOARD_FONT_SIZE    (FONT_SIZE - 10)
 #define KEYBOARD_HEIGHT       (KEYBOARD_KEY_SIZE * 3 + KEYBOARD_GAP * 2)
-#define SCREEN_WIDTH          PLATFORM_SCREEN_WIDTH 
-#define SCREEN_HEIGHT         PLATFORM_SCREEN_HEIGHT 
+#define SCREEN_WIDTH          PLATFORM_SCREEN_WIDTH
+#define SCREEN_HEIGHT         PLATFORM_SCREEN_HEIGHT
 
 
 typedef struct Attempt {
@@ -90,16 +90,18 @@ static Font font = {0};
 
 static float cursor_timer = 0.0f;
 
-void find_keyboard_key(char chr, int *i, int *j)
+bool find_keyboard_key(char chr, int *i, int *j)
 {
     for (int row = 0; row < KEYBOARD_ROWS; ++row) {
         for (int key = 0; keyboard_keys[row][key]; ++key) {
             if (keyboard_keys[row][key] == chr) {
                 *i = row;
                 *j = key;
+                return true;
             }
         }
     }
+    return false;
 }
 
 
@@ -141,8 +143,9 @@ void draw_text(char *text, int x, int y, int font_size, Color color)
 
 void draw_char(char chr, int char_box_size, int char_box_x, int char_box_y, int font_size)
 {
-    char text[10] = {0};
+    char text[2] = {0};
     text[0] = chr;
+    text[1] = '\0';
     Vector2 text_size = MeasureTextEx(font, text, font_size, 1);
     int x = (char_box_x + char_box_size/2) - text_size.x/2;
     int y = (char_box_y + char_box_size/2) - text_size.y/2;
@@ -230,7 +233,7 @@ State make_attempt(void)
 
     int row, col;
     for (int i = 0; i < WORD_LEN; ++i) {
-        find_keyboard_key(guess_buffer[i], &row, &col);
+        bool key_found = find_keyboard_key(guess_buffer[i], &row, &col);
         if (guess_buffer[i] == word_buffer[i]) {
             game.keyboard[row][col] = GREEN_BOX_COLOR;
             game.attempts[game.attempt].colors[i] = GREEN_BOX_COLOR;
@@ -238,13 +241,13 @@ State make_attempt(void)
             word_buffer[i] = '\0';
         } else {
             game.attempts[game.attempt].colors[i] = WRONG_BOX_COLOR;
-            if (is_colors_equals(game.keyboard[row][col], DEFAULT_KEYBOARD_KEY_COLOR))
+            if (key_found && is_colors_equals(game.keyboard[row][col], DEFAULT_KEYBOARD_KEY_COLOR))
                 game.keyboard[row][col] = WRONG_KEYBOARD_KEY_COLOR;
         }
     }
 
     for (int i = 0; i < WORD_LEN; ++i) {
-        if (word_buffer[i] == '\n') continue;
+        if (word_buffer[i] == '\0') continue;
         for (int j = 0; j < WORD_LEN; ++j) {
             if (guess_buffer[j] == '\0') continue;
             if (word_buffer[i] == guess_buffer[j]) {
@@ -273,11 +276,11 @@ State make_attempt(void)
 
 void process_input(void)
 {
-    if (IsKeyPressed(KEY_BACKSPACE) && game.current_guess_len > 0) {
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        if (game.current_guess_len > 0) --game.current_guess_len;
         if (game.current_guess_len < WORD_LEN) {
-            game.current_guess[game.current_guess_len] = 0;
+            game.current_guess[game.current_guess_len] = '\0';
         }
-        --game.current_guess_len;
     } else if (IsKeyPressed(KEY_ENTER)) {
         State state = make_attempt();
         if (state == STATE_USER_GUESS_COLORING) {
@@ -332,37 +335,6 @@ void draw_user_guess(float t)
     return;
 }
 
-void draw_game_play(void)
-{
-    draw_user_guess(1.0f);
-    draw_attempts(1.0f);
-    process_input();
-}
-
-void draw_game_user_guess_coloring(void)
-{
-    float t = (1.0f - game.time/(float)USER_GUESS_COLORING_TIME);
-    draw_attempts(t);
-}
-
-void draw_game_user_guess_appear(void)
-{
-    float t = (1.0f - game.time/(float)USER_GUESS_APPER_TIME);
-    draw_user_guess(t);
-    draw_attempts(1.0f);
-}
-
-void draw_game_win(void)
-{
-    draw_attempts(1.0f);
-}
-
-void draw_game_lose(void)
-{
-    draw_attempts(1.0f);
-    draw_text(game.word, 0, 0, LETTER_FONT_SIZE, WHITE);
-}
-
 size_t strlen(const char *string)
 {
     if (string == NULL) return 0;
@@ -375,26 +347,154 @@ size_t strlen(const char *string)
     return size;
 }
 
-void draw_keyboard(void)
+void draw_enter(bool active)
 {
+    int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT + FIELD_MARGIN*2 + KEYBOARD_HEIGHT)/2 + FIELD_HEIGHT + FIELD_MARGIN*2;
+    int len = strlen(keyboard_keys[0]);
+    int row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
+    int start_x = GetScreenWidth()/2 - row_width/2;
+    len = strlen(keyboard_keys[2]);
+    row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
+    int end_x = GetScreenWidth()/2 - row_width/2 - KEYBOARD_GAP;
+    int enter_width = end_x - start_x;
+    int y = start_y + 2 * KEYBOARD_KEY_SIZE + 2 * KEYBOARD_GAP;
+
+    bool is_hovered = CheckCollisionPointRec(
+        GetMousePosition(),
+        (Rectangle){ start_x, y, enter_width, KEYBOARD_KEY_SIZE }
+    );
+
+    Color color = DEFAULT_KEYBOARD_KEY_COLOR;
+    Color outline_color = is_hovered && active ? WHITE : color;
+
+    DrawRectangle(start_x, y, enter_width, KEYBOARD_KEY_SIZE, color);
+    DrawRectangleLines(start_x, y, enter_width, KEYBOARD_KEY_SIZE, outline_color);
+
+    char text[] = "Enter";
+    Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
+    int tx = start_x + (enter_width/2 - text_size.x/2);
+    int ty = y + (KEYBOARD_KEY_SIZE/2 - text_size.y/2);
+    draw_text(text, tx, ty, KEYBOARD_FONT_SIZE, LETTER_COLOR);
+
+    if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        State state = make_attempt();
+        if (state == STATE_USER_GUESS_COLORING) {
+            game.time = USER_GUESS_COLORING_TIME;
+        }
+        game.state = state;
+    }
+}
+
+void draw_backspace(bool active)
+{
+    int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT + FIELD_MARGIN*2 + KEYBOARD_HEIGHT)/2 + FIELD_HEIGHT + FIELD_MARGIN*2;
+    int len = strlen(keyboard_keys[0]);
+    int row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
+    int end_x = GetScreenWidth()/2 + row_width/2;
+    len = strlen(keyboard_keys[2]);
+    row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
+    int start_x = GetScreenWidth()/2 + row_width/2 + KEYBOARD_GAP;
+    int enter_width = end_x - start_x;
+    int y = start_y + 2 * KEYBOARD_KEY_SIZE + 2 * KEYBOARD_GAP;
+
+    bool is_hovered = CheckCollisionPointRec(
+        GetMousePosition(),
+        (Rectangle){ start_x, y, enter_width, KEYBOARD_KEY_SIZE }
+    );
+
+    Color color = DEFAULT_KEYBOARD_KEY_COLOR;
+    Color outline_color = is_hovered && active ? WHITE : color;
+
+    DrawRectangle(start_x, y, enter_width, KEYBOARD_KEY_SIZE, color);
+    DrawRectangleLines(start_x, y, enter_width, KEYBOARD_KEY_SIZE, outline_color);
+
+    char text[] = "<";
+    Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
+    int tx = start_x + (enter_width/2 - text_size.x/2);
+    int ty = y + (KEYBOARD_KEY_SIZE/2 - text_size.y/2);
+    draw_text(text, tx, ty, KEYBOARD_FONT_SIZE, LETTER_COLOR);
+
+    if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (game.current_guess_len > 0) --game.current_guess_len;
+        if (game.current_guess_len < WORD_LEN) {
+            game.current_guess[game.current_guess_len] = '\0';
+        }
+    }
+}
+
+
+void draw_keyboard(bool active)
+{
+    int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT + FIELD_MARGIN*2 + KEYBOARD_HEIGHT)/2 + FIELD_HEIGHT + FIELD_MARGIN*2;
     for (int i = 0; i < 3; ++i) {
-        int start_y = GetScreenHeight()/2 - (FIELD_HEIGHT + FIELD_MARGIN*2 + KEYBOARD_HEIGHT)/2 + FIELD_HEIGHT + FIELD_MARGIN*2;
         int y = start_y + i * KEYBOARD_KEY_SIZE + i * KEYBOARD_GAP;
         for (int j = 0; keyboard_keys[i][j]; ++j) {
             int len = strlen(keyboard_keys[i]);
             int row_width = len * KEYBOARD_KEY_SIZE + ((len - 1) * KEYBOARD_GAP);
             int start_x = GetScreenWidth()/2 - row_width/2;
             int x = start_x + (j * KEYBOARD_KEY_SIZE + j * KEYBOARD_GAP);
+            bool is_hovered = CheckCollisionPointRec(
+                GetMousePosition(),
+                (Rectangle){x, y, KEYBOARD_KEY_SIZE, KEYBOARD_KEY_SIZE}
+            );
             Color color = game.keyboard[i][j];
+            Color outline_color = is_hovered && active ? WHITE : color;
             DrawRectangle(x, y, KEYBOARD_KEY_SIZE, KEYBOARD_KEY_SIZE, color);
+            DrawRectangleLines(x, y, KEYBOARD_KEY_SIZE, KEYBOARD_KEY_SIZE, outline_color);
             draw_char(keyboard_keys[i][j], KEYBOARD_KEY_SIZE, x, y, KEYBOARD_FONT_SIZE);
+
+            if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                if (game.current_guess_len >= WORD_LEN) continue;
+                game.current_guess[game.current_guess_len] = keyboard_keys[i][j];
+                ++game.current_guess_len;
+            }
         }
     }
+
+    draw_enter(active);
+    draw_backspace(active);
 }
+
+
+void draw_game_play(void)
+{
+    draw_user_guess(1.0f);
+    draw_attempts(1.0f);
+    process_input();
+    draw_keyboard(true);
+}
+
+void draw_game_user_guess_coloring(void)
+{
+    float t = (1.0f - game.time/(float)USER_GUESS_COLORING_TIME);
+    draw_attempts(t);
+    draw_keyboard(false);
+}
+
+void draw_game_user_guess_appear(void)
+{
+    float t = (1.0f - game.time/(float)USER_GUESS_APPER_TIME);
+    draw_user_guess(t);
+    draw_attempts(1.0f);
+    draw_keyboard(false);
+}
+
+void draw_game_win(void)
+{
+    draw_attempts(1.0f);
+    draw_keyboard(false);
+}
+
+void draw_game_lose(void)
+{
+    draw_attempts(1.0f);
+    draw_text(game.word, 0, 0, LETTER_FONT_SIZE, WHITE);
+    draw_keyboard(false);
+}
+
 
 void draw_game_state(void)
 {
-    draw_keyboard();
 
     if (game.time > 0.0f) game.time -= GetFrameTime();
 
