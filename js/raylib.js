@@ -338,6 +338,50 @@ class RaylibJs {
         this.ctx.fillRect(posX, posY, width, height);
     }
 
+    // RLAPI void DrawRectangleRounded(Rectangle rec, float roundness, int segments, Color color);
+    // Draw rectangle with rounded edges
+    DrawRectangleRounded(rec_ptr, roundness, segments, color_ptr) {
+        const buffer = this.wasm.instance.exports.memory.buffer;
+        const color = getColorFromMemory(buffer, color_ptr);
+        const [x, y, w, h] = new Float32Array(buffer, rec_ptr, 4);
+        if (roundness >= 1.0) roundness = 1.0;
+        let radius = w > h ? (h*roundness)/2 : (w*roundness)/2;
+        this.ctx.fillStyle = color;
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, w, h, radius);
+        this.ctx.fill();
+    }
+
+    // RLAPI void DrawRectangleRoundedLines(Rectangle rec, float roundness, int segments, Color color);
+    // Draw rectangle lines with rounded edges
+    DrawRectangleRoundedLines(rec_ptr, roundness, segments, color_ptr) {
+        const buffer = this.wasm.instance.exports.memory.buffer;
+        const color = getColorFromMemory(buffer, color_ptr);
+        const [x, y, w, h] = new Float32Array(buffer, rec_ptr, 4);
+        if (roundness >= 1.0) roundness = 1.0;
+        let radius = w > h ? (h*roundness)/2 : (w*roundness)/2;
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, w, h, radius);
+        this.ctx.stroke();
+    }
+
+    // RLAPI void DrawRectangleRoundedLinesEx(Rectangle rec, float roundness, int segments, float lineThick, Color color);
+    // Draw rectangle with rounded edges outline
+    DrawRectangleRoundedLinesEx(rec_ptr, roundness, segments, line_thick, color_ptr) {
+        const buffer = this.wasm.instance.exports.memory.buffer;
+        const color = getColorFromMemory(buffer, color_ptr);
+        const [x, y, w, h] = new Float32Array(buffer, rec_ptr, 4);
+        if (roundness >= 1.0) roundness = 1.0;
+        let radius = w > h ? (h*roundness)/2 : (w*roundness)/2;
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = line_thick;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, w, h, radius);
+        this.ctx.stroke();
+    }
 
     //RLAPI void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color); // Draw a color-filled triangle (vertex in counter-clockwise order!)
     DrawTriangle(v1, v2, v3, color_ptr) {

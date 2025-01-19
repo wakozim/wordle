@@ -367,17 +367,19 @@ void draw_enter(bool active)
     int end_x = GetScreenWidth()/2 - row_width/2 - KEYBOARD_GAP;
     int enter_width = end_x - start_x;
     int y = start_y + 2 * KEYBOARD_KEY_SIZE + 2 * KEYBOARD_GAP;
+    
+    Rectangle key_rect = { start_x, y, enter_width, KEYBOARD_KEY_SIZE }; 
 
     bool is_hovered = CheckCollisionPointRec(
         GetMousePosition(),
-        (Rectangle){ start_x, y, enter_width, KEYBOARD_KEY_SIZE }
+        key_rect
     );
 
     Color color = DEFAULT_KEYBOARD_KEY_COLOR;
     Color outline_color = is_hovered && active ? WHITE : color;
 
-    DrawRectangle(start_x, y, enter_width, KEYBOARD_KEY_SIZE, color);
-    DrawRectangleLines(start_x, y, enter_width, KEYBOARD_KEY_SIZE, outline_color);
+    DrawRectangleRounded(key_rect, 0.2f, 365, color);
+    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
 
     char text[] = "Enter";
     Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
@@ -406,16 +408,18 @@ void draw_backspace(bool active)
     int enter_width = end_x - start_x;
     int y = start_y + 2 * KEYBOARD_KEY_SIZE + 2 * KEYBOARD_GAP;
 
+    Rectangle key_rect = { start_x, y, enter_width, KEYBOARD_KEY_SIZE }; 
+
     bool is_hovered = CheckCollisionPointRec(
         GetMousePosition(),
-        (Rectangle){ start_x, y, enter_width, KEYBOARD_KEY_SIZE }
+        key_rect
     );
 
     Color color = DEFAULT_KEYBOARD_KEY_COLOR;
     Color outline_color = is_hovered && active ? WHITE : color;
 
-    DrawRectangle(start_x, y, enter_width, KEYBOARD_KEY_SIZE, color);
-    DrawRectangleLines(start_x, y, enter_width, KEYBOARD_KEY_SIZE, outline_color);
+    DrawRectangleRounded(key_rect, 0.2f, 365, color);
+    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
 
     char text[] = "<";
     Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
@@ -454,17 +458,19 @@ void draw_keyboard(bool active)
             int row_x = GetScreenWidth()/2 - row_width/2;
             int x = row_x + (j*KEYBOARD_KEY_SIZE + j*KEYBOARD_GAP) - margin;
             int y = keyboard_y + (i*KEYBOARD_KEY_SIZE + i*KEYBOARD_GAP) - margin;
+            
+            Rectangle key_rect = { x, y, size, size };
 
             bool is_hovered = CheckCollisionPointRec(
                 GetMousePosition(),
-                (Rectangle){x, y, size, size}
+                key_rect
             );
 
             Color color = ColorLerp(game.keyboard[i][j].color, PRESSED_KEYBOARD_KEY_COLOR, t);
-            DrawRectangle(x, y, size, size, color);
+            DrawRectangleRounded(key_rect, 0.2f, 365, color);
 
             Color outline_color = is_hovered && active ? WHITE : color;
-            DrawRectangleLines(x, y, size, size, outline_color);
+            DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
 
             draw_char(keyboard_keys[i][j], size, x, y, KEYBOARD_FONT_SIZE);
 
