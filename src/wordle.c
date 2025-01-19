@@ -13,6 +13,7 @@
     extern void raylib_js_set_entry(void (*entry)(void));
 #endif
 #define MAX_ATTEMPTS                 6
+#define MAX_KEY_TIMER                0.25f
 #define MAX_USER_GUESS_CORRECT       1.0f
 #define MAX_NON_EXISTENT_WORD_TIMER  0.50f
 #define MAX_KEYBOARD_TIMER           0.4f
@@ -79,11 +80,16 @@ typedef struct Key {
     float time;
 } Key;
 
+typedef struct Char {
+    char chr;
+    float time;
+} Char;
+
 typedef struct Game {
     char *word;                     // Hidden word
     int attempt;                    // Current attempt
     Attempt attempts[MAX_ATTEMPTS]; // Previous attemps
-    char current_guess[WORD_LEN];   // Current user guess buffer
+    Char current_guess[WORD_LEN];   // Current user guess buffer
     int current_guess_len;          // Current user guess buffer length
     State state;                    // Game state
     float time;                     // Game time
@@ -135,7 +141,7 @@ void restart_game(void)
     game.attempt = 0;
     game.current_guess_len = 0;
     for (int i = 0; i < WORD_LEN; ++i) {
-        game.current_guess[i] = '\0';
+        game.current_guess[i].chr = '\0';
     }
     game.state = STATE_PLAY;
 }
@@ -212,7 +218,7 @@ State make_attempt(void)
     for (int i = 0; i < WORDS; ++i) {
         bool is_same_words = true;
         for (int j = 0; j < WORD_LEN; ++j) {
-            if (words[i][j] != game.current_guess[j]) {
+            if (words[i][j] != game.current_guess[j].chr) {
                 is_same_words = false;
             }
         }
@@ -227,7 +233,7 @@ State make_attempt(void)
     /* Check for win */
     bool is_win = true;
     for (int i = 0; i < WORD_LEN; ++i) {
-        if (game.current_guess[i] != game.word[i]) is_win = false;
+        if (game.current_guess[i].chr != game.word[i]) is_win = false;
     }
     if (is_win) {
         state = STATE_USER_GUESS_CORRECT;
@@ -236,8 +242,8 @@ State make_attempt(void)
 
     /* Copy user guess to previous attempts */
     for (int i = 0; i < WORD_LEN; ++i) {
-        game.attempts[game.attempt].word[i] = game.current_guess[i];
-        game.current_guess[i] = 0;
+        game.attempts[game.attempt].word[i] = game.current_guess[i].chr;
+        game.current_guess[i].chr = '\0';
     }
 
     /* Calculate colors for letters in guess */
@@ -297,7 +303,7 @@ void process_input(void)
     if (IsKeyPressed(KEY_BACKSPACE)) {
         if (game.current_guess_len > 0) --game.current_guess_len;
         if (game.current_guess_len < WORD_LEN) {
-            game.current_guess[game.current_guess_len] = '\0';
+            game.current_guess[game.current_guess_len].chr = '\0';
         }
     } else if (IsKeyPressed(KEY_ENTER)) {
         State state = make_attempt();
@@ -314,7 +320,8 @@ void process_input(void)
 
     for (int key = KEY_A; key <= KEY_Z; ++key) {
         if (IsKeyPressed(key)) {
-            game.current_guess[game.current_guess_len] = key;
+            game.current_guess[game.current_guess_len].chr = key;
+            game.current_guess[game.current_guess_len].time = MAX_KEY_TIMER;
             ++game.current_guess_len;
         }
     }
@@ -347,17 +354,24 @@ void draw_user_guess(float t)
 
     int base_y = Lerp(min_y, max_y, t);
     for (int c = 0; c < WORD_LEN; ++c) {
-        int y = base_y;
-        int x = start_x + (LETTER_BOX_SIZE + LETTER_BOX_GAP) * c;
+        if (game.current_guess[c].time > 0.0f) game.current_guess[c].time -= GetFrameTime();
+
+        float amount = 1.0f - game.current_guess[c].time/MAX_KEY_TIMER;
+        int offset = Lerp(0, 10, sinf(PI*amount));
+        int size = LETTER_BOX_SIZE + offset;
+
+        int y = base_y - offset/2;
+        int x = start_x + ((LETTER_BOX_SIZE + LETTER_BOX_GAP) * c) - offset/2;
+
         if (game.state == STATE_NON_EXISTENT_WORD) {
             float t = 1.0f - (game.time/MAX_NON_EXISTENT_WORD_TIMER);
             int offset = Lerp(0, 10, sinf(4*PI*t));
             y += offset;
-            DrawRectangle(x, y, LETTER_BOX_SIZE, LETTER_BOX_SIZE, ColorLerp(LETTER_BOX_COLOR, RED, sinf(PI*t)));
+            DrawRectangle(x, y, size, size, ColorLerp(LETTER_BOX_COLOR, RED, sinf(PI*t)));
         } else {
-            DrawRectangle(x, y, LETTER_BOX_SIZE, LETTER_BOX_SIZE, ColorAlpha(LETTER_BOX_COLOR, t));
+            DrawRectangle(x, y, size, size, ColorAlpha(LETTER_BOX_COLOR, t));
         }
-        if (c < game.current_guess_len) draw_letter(game.current_guess[c], x, y);
+        if (c < game.current_guess_len) draw_char(game.current_guess[c].chr, size, x, y, LETTER_FONT_SIZE);
         if (c == game.current_guess_len) draw_cursor(x, y, t);
     }
 
@@ -450,7 +464,7 @@ void draw_backspace(bool active)
     if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         if (game.current_guess_len > 0) --game.current_guess_len;
         if (game.current_guess_len < WORD_LEN) {
-            game.current_guess[game.current_guess_len] = '\0';
+            game.current_guess[game.current_guess_len].chr = '\0';
         }
     }
 }
@@ -500,7 +514,8 @@ void draw_keyboard(bool active)
 
             if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (game.current_guess_len >= WORD_LEN) continue;
-                game.current_guess[game.current_guess_len] = keyboard_keys[i][j];
+                game.current_guess[game.current_guess_len].chr = keyboard_keys[i][j];
+                game.current_guess[game.current_guess_len].time = MAX_KEY_TIMER; 
                 ++game.current_guess_len;
                 game.keyboard[i][j].time = MAX_KEYBOARD_TIMER;
             }
@@ -628,7 +643,7 @@ void game_frame(void)
             restart_game();
         } else if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_U)) {
             for (int i = 0; i < WORD_LEN; ++i) {
-                game.current_guess[i] = '\0';
+                game.current_guess[i].chr = '\0';
             }
             game.current_guess_len = 0;
         }
