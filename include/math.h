@@ -2,6 +2,7 @@
 // But it only needs it for few function definitions. So we've put those definitions here.
 #ifndef MATH_H_
 #define MATH_H_
+float powf(float, float);
 float floorf(float);
 float fabsf(float);
 double fabs(double);
