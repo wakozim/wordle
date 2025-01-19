@@ -541,10 +541,14 @@ void game_frame(void)
 {
     BeginDrawing();
         ClearBackground(BACKGROUND_COLOR);
+        draw_game_state();
         if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_R)) {
             restart_game();
-        } else {
-            draw_game_state();
+        } else if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_U)) {
+            for (int i = 0; i < WORD_LEN; ++i) {
+                game.current_guess[i] = '\0';
+            }
+            game.current_guess_len = 0;
         }
     EndDrawing();
 }
