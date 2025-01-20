@@ -34,7 +34,7 @@
 #define LOSE_BOX_COLOR             ColorFromHSV(0, 0.0f, 0.35f)
 
 #ifdef PLATFORM_WEB
-#   define FONT_SIZE              50
+#   define FONT_SIZE              45
 #   define PLATFORM_SCREEN_WIDTH  0
 #   define PLATFORM_SCREEN_HEIGHT 0
 #else
@@ -45,16 +45,16 @@
 
 #define LETTER_FONT_FILEPATH  "./assets/fonts/Oswald-Bold.ttf"
 #define LETTER_FONT_SIZE      FONT_SIZE
-#define LETTER_BOX_SIZE       75
+#define LETTER_BOX_SIZE       72
 #define LETTER_BOX_GAP        10
 #define FIELD_WIDTH           ((WORD_LEN * LETTER_BOX_SIZE) + ((WORD_LEN - 1) * LETTER_BOX_GAP))
 #define FIELD_HEIGHT          ((MAX_ATTEMPTS * LETTER_BOX_SIZE) + ((MAX_ATTEMPTS - 1) * LETTER_BOX_GAP))
 #define FIELD_MARGIN          25
 #define CURSOR_WIDTH          (LETTER_BOX_SIZE*0.1f)
 #define CURSOR_HEIGHT         (LETTER_BOX_SIZE*0.75f)
-#define KEYBOARD_KEY_SIZE     60
-#define KEYBOARD_GAP          15
-#define KEYBOARD_FONT_SIZE    (FONT_SIZE - 10)
+#define KEYBOARD_KEY_SIZE     55
+#define KEYBOARD_GAP          10
+#define KEYBOARD_FONT_SIZE    (FONT_SIZE - 15)
 #define KEYBOARD_HEIGHT       (KEYBOARD_KEY_SIZE * 3 + KEYBOARD_GAP * 2)
 #define SCREEN_WIDTH          PLATFORM_SCREEN_WIDTH
 #define SCREEN_HEIGHT         PLATFORM_SCREEN_HEIGHT
@@ -412,8 +412,8 @@ void draw_enter(bool active)
     Color color = DEFAULT_KEYBOARD_KEY_COLOR;
     Color outline_color = is_hovered && active ? WHITE : color;
 
-    DrawRectangleRounded(key_rect, 0.2f, 365, color);
-    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
+    DrawRectangleRounded(key_rect, 0.2f, 0, color);
+    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 0, 2, outline_color);
 
     char text[] = "Enter";
     Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
@@ -452,8 +452,8 @@ void draw_backspace(bool active)
     Color color = DEFAULT_KEYBOARD_KEY_COLOR;
     Color outline_color = is_hovered && active ? WHITE : color;
 
-    DrawRectangleRounded(key_rect, 0.2f, 365, color);
-    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
+    DrawRectangleRounded(key_rect, 0.2f, 0, color);
+    DrawRectangleRoundedLinesEx(key_rect, 0.2f, 0, 2, outline_color);
 
     char text[] = "<";
     Vector2 text_size = MeasureTextEx(font, text, KEYBOARD_FONT_SIZE, 1);
@@ -484,7 +484,7 @@ void draw_keyboard(bool active)
             bool is_key_was_pressed = key->time >= 0.0f;
             float t = sinf(((key->time/MAX_KEYBOARD_TIMER)) * PI);
             if (is_key_was_pressed) key->time -= GetFrameTime();
-            int margin = is_key_was_pressed ? Lerp(0, 5, t) : 0;
+            int margin = is_key_was_pressed ? Lerp(0, 3, t) : 0;
             int size = KEYBOARD_KEY_SIZE + margin*2;
 
             int keys_in_row = strlen(keyboard_keys[i]);
@@ -501,10 +501,10 @@ void draw_keyboard(bool active)
             );
 
             Color color = ColorLerp(game.keyboard[i][j].color, PRESSED_KEYBOARD_KEY_COLOR, t);
-            DrawRectangleRounded(key_rect, 0.2f, 365, color);
+            DrawRectangleRounded(key_rect, 0.2f, 0, color);
 
             Color outline_color = is_hovered && active ? WHITE : color;
-            DrawRectangleRoundedLinesEx(key_rect, 0.2f, 365, 2, outline_color);
+            DrawRectangleRoundedLinesEx(key_rect, 0.2f, 0, 2, outline_color);
 
             draw_char(keyboard_keys[i][j], size, x, y, KEYBOARD_FONT_SIZE);
 
