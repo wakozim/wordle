@@ -13,6 +13,7 @@
     extern void raylib_js_set_entry(void (*entry)(void));
 #endif
 #define MAX_ATTEMPTS                 6
+#define MAX_RESTART_TIMER            0.5f
 #define MAX_KEY_TIMER                0.25f
 #define MAX_USER_GUESS_CORRECT       1.0f
 #define MAX_NON_EXISTENT_WORD_TIMER  0.50f
@@ -73,6 +74,8 @@ typedef enum State {
     STATE_USER_GUESS_APPEAR,
     STATE_WIN,
     STATE_LOSE,
+    STATE_RESTART_FADEIN,
+    STATE_RESTART_FADEOUT,
 } State;
 
 typedef struct Key {
@@ -587,6 +590,14 @@ void draw_game_lose(void)
     DrawTextEx(font, game.word, text_pos, LETTER_FONT_SIZE, 1.0f, LETTER_COLOR);
 }
 
+void draw_game_restart(float t)
+{
+    draw_attempts(1.0f);
+    draw_user_guess(1.0f);
+    draw_keyboard(false);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), ColorAlpha(BLACK, t));
+}
+
 
 void draw_game_state(void)
 {
@@ -596,6 +607,23 @@ void draw_game_state(void)
     switch (game.state) {
         case STATE_PLAY: {
             draw_game_play();
+        } break;
+        case STATE_RESTART_FADEIN: {
+            float t = 1.0f - game.time / MAX_RESTART_TIMER;
+            draw_game_restart(t);
+            if (game.time <= 0.0f) {
+                restart_game();
+                game.state = STATE_RESTART_FADEOUT;
+                game.time = MAX_RESTART_TIMER;
+            }
+        } break;
+        case STATE_RESTART_FADEOUT: {
+            float t = game.time / MAX_RESTART_TIMER;
+            draw_game_restart(t);
+            if (game.time <= 0.0f) {
+                game.state = STATE_PLAY;
+                game.time = 0.0f;
+            }
         } break;
         case STATE_USER_GUESS_CORRECT: {
             draw_user_guess_correct();
@@ -640,7 +668,8 @@ void game_frame(void)
         ClearBackground(BACKGROUND_COLOR);
         draw_game_state();
         if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_R)) {
-            restart_game();
+            game.state = STATE_RESTART_FADEIN;
+            game.time = MAX_RESTART_TIMER;
         } else if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_U)) {
             for (int i = 0; i < WORD_LEN; ++i) {
                 game.current_guess[i].chr = '\0';
