@@ -97,6 +97,7 @@ typedef struct Game {
     State state;                    // Game state
     float time;                     // Game time
     Key keyboard[3][12];            // Keyboard state
+    bool win;                       // Win
 } Game;
 
 #define KEYBOARD_ROWS 3
@@ -141,6 +142,7 @@ void restart_game(void)
         TraceLog(LOG_ERROR, "Word is %s", game.word);
 #   endif
 #endif
+    game.win = false;
     game.attempt = 0;
     game.current_guess_len = 0;
     for (int i = 0; i < WORD_LEN; ++i) {
@@ -295,6 +297,7 @@ State make_attempt(void)
     game.attempt += 1;
     if (game.attempt == MAX_ATTEMPTS && state != STATE_USER_GUESS_CORRECT) {
         state = STATE_LOSE;
+        game.win = false;
     }
 
     return state;
@@ -347,6 +350,7 @@ void draw_cursor(int letter_box_x, int letter_box_y, float time)
 
 void draw_user_guess(float t)
 {
+    if (game.win) return;
     if (game.attempt >= MAX_ATTEMPTS) return;
 
     int start_x = GetScreenWidth()/2 - FIELD_WIDTH/2;
@@ -518,7 +522,7 @@ void draw_keyboard(bool active)
             if (active && is_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (game.current_guess_len >= WORD_LEN) continue;
                 game.current_guess[game.current_guess_len].chr = keyboard_keys[i][j];
-                game.current_guess[game.current_guess_len].time = MAX_KEY_TIMER; 
+                game.current_guess[game.current_guess_len].time = MAX_KEY_TIMER;
                 ++game.current_guess_len;
                 game.keyboard[i][j].time = MAX_KEYBOARD_TIMER;
             }
@@ -629,6 +633,7 @@ void draw_game_state(void)
             draw_user_guess_correct();
             if (game.time <= 0.0f) {
                 game.state = STATE_WIN;
+                game.win = true;
                 game.time = 0.0f;
             }
         } break;
