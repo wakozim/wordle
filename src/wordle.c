@@ -322,7 +322,7 @@ void process_input(void)
     if (game.current_guess_len >= WORD_LEN) return;
 
     for (int key = KEY_A; key <= KEY_Z; ++key) {
-        if (IsKeyPressed(key)) {
+        if (!IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(key)) {
             game.current_guess[game.current_guess_len].chr = key;
             game.current_guess[game.current_guess_len].time = MAX_KEY_TIMER;
             ++game.current_guess_len;
@@ -511,7 +511,7 @@ void draw_keyboard(bool active)
 
             draw_char(keyboard_keys[i][j], size, x, y, KEYBOARD_FONT_SIZE);
 
-            if (active && IsKeyPressed(keyboard_keys[i][j]) && game.current_guess_len < WORD_LEN) {
+            if (active && (!IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(keyboard_keys[i][j])) && game.current_guess_len < WORD_LEN) {
                 game.keyboard[i][j].time = MAX_KEYBOARD_TIMER;
             }
 
